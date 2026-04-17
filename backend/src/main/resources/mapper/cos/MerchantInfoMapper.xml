@@ -5,25 +5,28 @@
     <!-- 分页获取商家信息 -->
     <select id="selectMerchantPage" resultType="java.util.LinkedHashMap">
         select
-            id,
-            name,
-            code,
-            address,
-            principal,
-            phone,
-            content,
-            operate_day,
-            operate_start_time,
-            operate_end_time,
-            images,
-            create_date,
-            status,
-            dishes,
-            longitude,
-            community_id,
-            latitude
+        mi.id,
+        mi.name,
+        mi.code,
+        mi.address,
+        mi.principal,
+        mi.phone,
+        mi.content,
+        mi.operate_day,
+        mi.operate_start_time,
+        mi.operate_end_time,
+        mi.images,
+        mi.create_date,
+        mi.status,
+        mi.dishes,
+        mi.longitude,
+        mi.community_id,
+        mi.latitude,
+        oc.id AS ocId,
+        oc.status AS ocStatus
         from
-            merchant_info
+        merchant_info mi
+        left join organic_certifications oc on (oc.merchant_id = mi.id)
         where 1 = 1
         <if test="merchantInfo.code != null and merchantInfo.code != ''">
             AND code LIKE CONCAT('%',#{merchantInfo.code},'%')

@@ -1,7 +1,7 @@
+
 <template>
   <a-card :bordered="false" class="card-area">
     <div :class="advanced ? 'search' : null">
-      <!-- 搜索区域 -->
       <a-form layout="horizontal">
         <a-row :gutter="15">
           <div :class="advanced ? null: 'fold'">
@@ -39,10 +39,8 @@
     </div>
     <div>
       <div class="operator">
-<!--        <a-button type="primary" ghost @click="add">新增</a-button>-->
         <a-button @click="batchDelete">删除</a-button>
       </div>
-      <!-- 表格区域 -->
       <a-table ref="TableInfo"
                :columns="columns"
                :rowKey="record => record.id"
@@ -55,6 +53,7 @@
         <template slot="operation" slot-scope="text, record">
           <a-icon type="setting" theme="twoTone" twoToneColor="#4a9ff5" @click="edit(record)" title="修 改"></a-icon>
           <a-icon type="file-search" @click="merchantViewOpen(record)" title="详 情" style="margin-left: 15px"></a-icon>
+          <a-icon v-if="record.ocId != null" type="audit" @click="openCertificationAudit(record)" title="审 核" style="margin-left: 15px"></a-icon>
           <a-icon v-if="record.status === '1'" type="caret-down" @click="audit(record.id, 0)" title="上 架" style="margin-left: 15px"></a-icon>
           <a-icon v-if="record.status === '0'" type="caret-up" @click="audit(record.id, 1)" title="下 架" style="margin-left: 15px"></a-icon>
         </template>
@@ -77,11 +76,141 @@
       :merchantShow="merchantView.visiable"
       :merchantData="merchantView.data">
     </merchant-view>
+
+    <a-modal
+      v-model="certificationAuditVisible"
+      title="商家认证审核"
+      @cancel="handleCertificationAuditClose"
+      :width="1200"
+      :footer="null">
+      <div style="font-size: 13px;font-family: SimHei" v-if="certificationData !== null">
+        <a-row style="padding-left: 24px;padding-right: 24px;">
+          <a-col style="margin-bottom: 15px"><span style="font-size: 15px;font-weight: 650;color: #000c17">基础信息</span></a-col>
+          <a-col :span="8"><b>ID：</b>
+            {{ certificationData.id }}
+          </a-col>
+          <a-col :span="8"><b>商家ID：</b>
+            {{ certificationData.merchantId }}
+          </a-col>
+          <a-col :span="8"><b>审核状态：</b>
+            <a-tag v-if="certificationData.status === 0" color="orange">待审核</a-tag>
+            <a-tag v-else-if="certificationData.status === 1" color="green">通过</a-tag>
+            <a-tag v-else-if="certificationData.status === 2" color="red">驳回</a-tag>
+          </a-col>
+        </a-row>
+        <br/>
+        <a-row style="padding-left: 24px;padding-right: 24px;">
+          <a-col style="margin-bottom: 15px"><span style="font-size: 15px;font-weight: 650;color: #000c17">资质图片</span></a-col>
+          <a-col :span="24"><b>身份证明：</b></a-col>
+          <a-col :span="24" style="margin-top: 10px;margin-bottom: 15px;">
+            <img
+              v-if="certificationData.idCardImg"
+              :src="'http://127.0.0.1:9527/imagesWeb/' + certificationData.idCardImg"
+              style="max-width: 300px;cursor: pointer;border: 1px solid #d9d9d9;border-radius: 4px;"
+              @click="previewImage(certificationData.idCardImg)" />
+            <span v-else>未上传</span>
+          </a-col>
+
+          <a-col :span="24"><b>营业执照：</b></a-col>
+          <a-col :span="24" style="margin-top: 10px;margin-bottom: 15px;">
+            <img
+              v-if="certificationData.businessLicenseImg"
+              :src="'http://127.0.0.1:9527/imagesWeb/' + certificationData.businessLicenseImg"
+              style="max-width: 300px;cursor: pointer;border: 1px solid #d9d9d9;border-radius: 4px;"
+              @click="previewImage(certificationData.businessLicenseImg)" />
+            <span v-else>未上传</span>
+          </a-col>
+
+          <a-col :span="24"><b>土地租赁合同或产权证明：</b></a-col>
+          <a-col :span="24" style="margin-top: 10px;margin-bottom: 15px;">
+            <img
+              v-if="certificationData.landProofImg"
+              :src="'http://127.0.0.1:9527/imagesWeb/' + certificationData.landProofImg"
+              style="max-width: 300px;cursor: pointer;border: 1px solid #d9d9d9;border-radius: 4px;"
+              @click="previewImage(certificationData.landProofImg)" />
+            <span v-else>未上传</span>
+          </a-col>
+        </a-row>
+        <br/>
+        <a-row style="padding-left: 24px;padding-right: 24px;">
+          <a-col style="margin-bottom: 15px"><span style="font-size: 15px;font-weight: 650;color: #000c17">检测报告</span></a-col>
+          <a-col :span="24"><b>环境检测报告：</b></a-col>
+          <a-col :span="24" style="margin-top: 10px;margin-bottom: 15px;">
+            <img
+              v-if="certificationData.envTestReport"
+              :src="'http://127.0.0.1:9527/imagesWeb/' + certificationData.envTestReport"
+              style="max-width: 300px;cursor: pointer;border: 1px solid #d9d9d9;border-radius: 4px;"
+              @click="previewImage(certificationData.envTestReport)" />
+            <span v-else>未上传</span>
+          </a-col>
+
+          <a-col :span="24"><b>产品检验报告：</b></a-col>
+          <a-col :span="24" style="margin-top: 10px;margin-bottom: 15px;">
+            <img
+              v-if="certificationData.productTestReport"
+              :src="'http://127.0.0.1:9527/imagesWeb/' + certificationData.productTestReport"
+              style="max-width: 300px;cursor: pointer;border: 1px solid #d9d9d9;border-radius: 4px;"
+              @click="previewImage(certificationData.productTestReport)" />
+            <span v-else>未上传</span>
+          </a-col>
+
+          <a-col :span="24"><b>投入品证明（种子、肥料等）：</b></a-col>
+          <a-col :span="24" style="margin-top: 10px;margin-bottom: 15px;">
+            <img
+              v-if="certificationData.inputMaterialProof"
+              :src="'http://127.0.0.1:9527/imagesWeb/' + certificationData.inputMaterialProof"
+              style="max-width: 300px;cursor: pointer;border: 1px solid #d9d9d9;border-radius: 4px;"
+              @click="previewImage(certificationData.inputMaterialProof)" />
+            <span v-else>未上传</span>
+          </a-col>
+        </a-row>
+        <br/>
+        <a-row style="padding-left: 24px;padding-right: 24px;">
+          <a-col style="margin-bottom: 15px"><span style="font-size: 15px;font-weight: 650;color: #000c17">其他信息</span></a-col>
+          <a-col :span="24"><b>商家的其他要求或问题：</b></a-col>
+          <a-col :span="24" style="margin-top: 10px;margin-bottom: 15px;">
+            {{ certificationData.additionalRequests || '- -' }}
+          </a-col>
+
+          <a-col :span="24" v-if="certificationData.adminRemark"><b>管理员审核备注/驳回原因：</b></a-col>
+          <a-col :span="24" style="margin-top: 10px;margin-bottom: 15px;" v-if="certificationData.adminRemark">
+            {{ certificationData.adminRemark }}
+          </a-col>
+
+          <a-col :span="8"><b>已通知管理员：</b>
+            {{ certificationData.hasNotifiedAdmin ? '是' : '否' }}
+          </a-col>
+        </a-row>
+
+        <a-divider v-if="certificationData.status === 0" />
+
+        <a-row v-if="certificationData.status === 0" style="padding-left: 24px;padding-right: 24px;">
+          <a-col style="margin-bottom: 15px"><span style="font-size: 15px;font-weight: 650;color: #000c17">审核操作</span></a-col>
+          <a-col :span="24">
+            <a-textarea
+              v-model="auditRemark"
+              placeholder="请输入审核备注（驳回时必填）"
+              :rows="4"              style="margin-bottom: 15px" />
+          </a-col>
+          <a-col :span="24" style="text-align: center;">
+            <a-button type="primary" @click="handleApprove" style="margin-right: 10px;">
+              审核通过
+            </a-button>
+            <a-button type="danger" @click="handleReject">
+              驳回
+            </a-button>
+          </a-col>
+        </a-row>
+      </div>
+    </a-modal>
+
+    <a-modal v-model="previewVisible" :footer="null" @cancel="previewVisible = false">
+      <img alt="预览" style="width: 100%" :src="previewImageUrl" />
+    </a-modal>
   </a-card>
 </template>
 
-<script>
-import RangeDate from '@/components/datetime/RangeDate'
+<script>import RangeDate from '@/components/datetime/RangeDate'
 import merchantAdd from './MerchantAdd'
 import merchantEdit from './MerchantEdit'
 import merchantView from './MerchantView.vue'
@@ -120,7 +249,12 @@ export default {
         showSizeChanger: true,
         showTotal: (total, range) => `显示 ${range[0]} ~ ${range[1]} 条记录，共 ${total} 条记录`
       },
-      userList: []
+      userList: [],
+      certificationAuditVisible: false,
+      certificationData: null,
+      previewVisible: false,
+      previewImageUrl: '',
+      auditRemark: ''
     }
   },
   computed: {
@@ -229,6 +363,73 @@ export default {
     handlemerchantViewClose () {
       this.merchantView.visiable = false
     },
+    openCertificationAudit (record) {
+      this.certificationData = null
+      this.auditRemark = ''
+      this.certificationAuditVisible = true
+      this.$get('/cos/organic-certifications/queryCertificationByMerchantUser', {
+        merchantId: record.id
+      }).then((r) => {
+        if (r.data && r.data.data) {
+          this.certificationData = r.data.data
+        } else {
+          this.$message.warning('该商家暂无认证信息')
+          this.certificationAuditVisible = false
+        }
+      }).catch(() => {
+        this.$message.error('获取认证信息失败')
+        this.certificationAuditVisible = false
+      })
+    },
+    handleCertificationAuditClose () {
+      this.certificationAuditVisible = false
+      this.certificationData = null
+      this.auditRemark = ''
+    },
+    previewImage (imagePath) {
+      this.previewImageUrl = 'http://127.0.0.1:9527/imagesWeb/' + imagePath
+      this.previewVisible = true
+    },
+    handleApprove () {
+      this.$confirm({
+        title: '确认审核通过?',
+        content: '通过后将无法撤销',
+        centered: true,
+        onOk: () => {
+          this.$put('/cos/organic-certifications', {
+            id: this.certificationData.id,
+            status: 1,
+            adminRemark: this.auditRemark || ''
+          }).then((r) => {
+            this.$message.success('审核通过')
+            this.handleCertificationAuditClose()
+            this.search()
+          })
+        }
+      })
+    },
+    handleReject () {
+      if (!this.auditRemark) {
+        this.$message.warning('请输入驳回原因')
+        return
+      }
+      this.$confirm({
+        title: '确认驳回?',
+        content: '驳回后商家可以重新提交认证信息',
+        centered: true,
+        onOk: () => {
+          this.$put('/cos/organic-certifications/audit', {
+            id: this.certificationData.id,
+            status: 2,
+            adminRemark: this.auditRemark
+          }).then((r) => {
+            this.$message.success('已驳回')
+            this.handleCertificationAuditClose()
+            this.search()
+          })
+        }
+      })
+    },
     onSelectChange (selectedRowKeys) {
       this.selectedRowKeys = selectedRowKeys
     },
@@ -287,7 +488,6 @@ export default {
     search () {
       let {sortedInfo, filteredInfo} = this
       let sortField, sortOrder
-      // 获取当前列的排序和列的过滤规则
       if (sortedInfo) {
         sortField = sortedInfo.field
         sortOrder = sortedInfo.order
@@ -300,24 +500,18 @@ export default {
       })
     },
     reset () {
-      // 取消选中
       this.selectedRowKeys = []
-      // 重置分页
       this.$refs.TableInfo.pagination.current = this.pagination.defaultCurrent
       if (this.paginationInfo) {
         this.paginationInfo.current = this.pagination.defaultCurrent
         this.paginationInfo.pageSize = this.pagination.defaultPageSize
       }
-      // 重置列过滤器规则
       this.filteredInfo = null
-      // 重置列排序规则
       this.sortedInfo = null
-      // 重置查询参数
       this.queryParams = {}
       this.fetch()
     },
     handleTableChange (pagination, filters, sorter) {
-      // 将这三个参数赋值给Vue data，用于后续使用
       this.paginationInfo = pagination
       this.filteredInfo = filters
       this.sortedInfo = sorter
@@ -330,16 +524,13 @@ export default {
       })
     },
     fetch (params = {}) {
-      // 显示loading
       this.loading = true
       if (this.paginationInfo) {
-        // 如果分页信息不为空，则设置表格当前第几页，每页条数，并设置查询分页参数
         this.$refs.TableInfo.pagination.current = this.paginationInfo.current
         this.$refs.TableInfo.pagination.pageSize = this.paginationInfo.pageSize
         params.size = this.paginationInfo.pageSize
         params.current = this.paginationInfo.current
       } else {
-        // 如果分页信息为空，则设置为默认值
         params.size = this.pagination.defaultPageSize
         params.current = this.pagination.defaultCurrent
       }
@@ -351,7 +542,6 @@ export default {
         pagination.total = data.total
         this.dataSource = data.records
         this.pagination = pagination
-        // 数据加载完毕，关闭loading
         this.loading = false
       })
     }
@@ -359,6 +549,5 @@ export default {
   watch: {}
 }
 </script>
-<style lang="less" scoped>
-@import "../../../../static/less/Common";
+<style lang="less" scoped>@import "../../../../static/less/Common";
 </style>

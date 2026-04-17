@@ -5,6 +5,9 @@
         <a-card :bordered="false">
           <a-form :form="form" layout="vertical">
             <a-row :gutter="20">
+              <a-col :span="24">
+                <a-button @click="openCertification">认证申报</a-button>
+              </a-col>
               <a-col :span="12">
                 <a-form-item label='商家名称' v-bind="formItemLayout">
                   <a-input v-decorator="[
@@ -122,6 +125,11 @@
       <a-col :span="14">
         <div id="areas" style="width: 100%;height: 700px;box-shadow: 0 0 0 10px white;"></div>
       </a-col>
+      <certification-form
+        :certificationVisiable="certificationVisible"
+        @close="handleCertificationClose"
+        @success="handleCertificationSuccess">
+      </certification-form>
     </a-row>
   </div>
 </template>
@@ -130,6 +138,7 @@
 import {mapState} from 'vuex'
 import baiduMap from '@/utils/map/baiduMap'
 import drawerMap from '@/utils/map/searchmap/drawerMap'
+import certificationForm from '../certification/Certification.vue'
 import moment from 'moment'
 moment.locale('zh-cn')
 
@@ -169,7 +178,8 @@ export default {
       fileList: [],
       previewVisible: false,
       previewImage: '',
-      merchantInfo: null
+      merchantInfo: null,
+      certificationVisible: false
     }
   },
   computed: {
@@ -178,13 +188,24 @@ export default {
     })
   },
   components: {
-    drawerMap
+    drawerMap,
+    certificationForm
   },
   mounted () {
     this.getmerchantByUser()
     baiduMap.initMap('areas')
   },
   methods: {
+    openCertification () {
+      this.certificationVisible = true
+    },
+    handleCertificationClose () {
+      this.certificationVisible = false
+    },
+    handleCertificationSuccess () {
+      this.certificationVisible = false
+      this.$message.success('操作成功')
+    },
     moment,
     onChange (checkedList) {
       this.indeterminate = !!checkedList.length && checkedList.length < plainOptions.length
